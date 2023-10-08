@@ -48,14 +48,6 @@ def calculate_grid_size(order_quantity):
     # Calculate grid_size based on the desired profit percentage and order quantity
     return order_quantity * last_price / (1 + profit_percent)
 
-def calculate_grid_size(order_quantity):
-    # Fetch the latest ticker information
-    ticker = exchange.fetch_ticker(symbol)
-    last_price = ticker['last']
-
-    # Calculate grid_size based on the desired profit percentage and order quantity
-    return order_quantity * last_price / (1 + profit_percent)
-
 def print_red(message):
     print("\033[31m" + message + "\033[0m")
 
