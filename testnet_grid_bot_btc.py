@@ -56,10 +56,6 @@ def calculate_grid_size(order_quantity):
     # Calculate grid_size based on the desired profit percentage and order quantity
     return order_quantity * last_price / (1 + profit_percent)
 
-# Assuming you have an order quantity, update the grid_size calculation
-grid_size = calculate_grid_size(quantity)
-
-
 def print_red(message):
     print("\033[31m" + message + "\033[0m")
 
