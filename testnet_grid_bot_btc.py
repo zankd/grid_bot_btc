@@ -15,7 +15,7 @@ exchange.set_sandbox_mode(True)
 # Define strategy parameters
 symbol = 'BTC/USDT'
 max_open_orders = 4
-fixed_grid_size = 200  # USD
+fixed_grid_size = 20  # USD
 quantity = 0.0030
 
 # Retrieve the initial BTC/USDT price
@@ -141,14 +141,15 @@ def print_initial_info():
         price = round(initial_price + i * grid_size, 2)
         print(f'Grid at {price:.2f} USDT')
 
-# Initialize last_buy_grid before using it
+# Initialize last_buy_grid and last_sell_grid before using them
 last_buy_grid = 0
+last_sell_grid = 0
 
 # Initialize a variable to control the loop
 running = True
 
 def execute_adjustable_grid(initial_price):
-    global last_buy_grid, grid_size, running, quantity
+    global last_buy_grid, last_sell_grid, grid_size, running, quantity
 
     try:
         # Print initial information
@@ -165,16 +166,14 @@ def execute_adjustable_grid(initial_price):
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print_red(f'BTC/USDT Price: {last_price}')
 
-            # Fetch existing buy orders
+            # Fetch existing buy and sell orders
             existing_buy_orders = [order for order in exchange.fetch_open_orders(symbol) if order['side'] == 'buy']
+            existing_sell_orders = [order for order in exchange.fetch_open_orders(symbol) if order['side'] == 'sell']
 
             # Place buy orders only when the price crosses a new upper grid line
             current_grid = round((last_price - initial_price) / grid_size)
             if current_grid > last_buy_grid and current_grid != 0:
-                # Recalculate grid_size based on the adjusted order quantity
-                grid_size = calculate_grid_size(last_price, quantity)
-
-                # Place a single buy order at the new upper grid line
+                # Use the current upper grid line price
                 price = round(initial_price + current_grid * grid_size, 2)
 
                 # Check if there is no existing buy order at the same price
@@ -184,11 +183,22 @@ def execute_adjustable_grid(initial_price):
 
                 last_buy_grid = current_grid
 
+            # Place sell orders only when the price crosses a new upper grid line
+            elif current_grid < last_sell_grid and current_grid != 0:
+                # Use the current upper grid line price
+                price = round(initial_price + current_grid * grid_size, 2)
+
+                # Check if there is no existing sell order at the same price
+                if not any(order['price'] == price for order in existing_sell_orders):
+                    place_order('SELL', price, quantity)
+                    log_trade(timestamp, 'SELL', price, quantity)
+
+                last_sell_grid = current_grid
+
             # Check if existing sell orders have been filled
-            existing_sell_orders = [order for order in exchange.fetch_open_orders(symbol) if order['side'] == 'sell']
             for sell_order in existing_sell_orders:
-                if sell_order['status'] == 'closed':
-                    # Sell order has been filled, log the trade and place a new sell order
+                if sell_order not in exchange.fetch_open_orders(symbol):
+                    # Sell order is no longer in the list of open orders, log the trade and place a new sell order
                     price = sell_order['price']
                     quantity = sell_order['quantity']
                     log_trade(timestamp, 'SELL', price, quantity)
